@@ -1,15 +1,20 @@
 # Muse 求职工作流
 
-这是一套可在自己工作区部署的求职流程模板，覆盖岗位发现、官网核验、申请队列、投递执行和回执监督。先读 [HTML 部署手册](index.html)，再按 [详细部署 Prompt](DEPLOYMENT-PROMPT.md) 执行。配置从 [示例 JSON](config.example.json) 开始。发布页可下载便于转发的独立 ZIP。
+把下面这句话发到自己的 [Muse](https://muse.ai/) 对话里。
 
-## 直接发给 Muse 的 Prompt
+> 请在我的私有工作区部署 https://github.com/hukairui228/muse-job-workflow 。读取仓库的 SKILL.md，完成初始化和首轮只读验收，再告诉我需要补的设置或授权。保持真实提交关闭。
 
-> 请在我的工作区部署这套 Muse 求职工作流。先解压我附上的 `muse-workflow.zip`，读取 `index.html`、`DEPLOYMENT-PROMPT.md` 和 `config.example.json`，然后实际配置并跑通首轮验收。
->
-> 先用一轮问我缺少的必要信息，包括目标地区与时区、远程范围、岗位方向与级别、简历所在的私有位置，以及已经可用的搜索、浏览器和调度工具。能独立完成的配置先做。
->
-> 用 Agent Reach 或我已连接的工具发现岗位，以雇主官网核实开放状态、完整 JD 和 Req ID。建立一个私有申请队列，按雇主和官方 Req ID 去重。让 Muse 从同一队列认领岗位、准备草稿，再用只读监督任务核对回执和卡点。已有工具和任务优先复用。账户登录、MFA 和站点授权由我在原生界面完成，凭据放在我自己的密码管理器。
->
-> 先运行 `python3 -B -m unittest discover -s tests`，再用合成岗位验证重复批次只生成一条申请，并用一个真实岗位做只读演练，给我官网链接、Req ID 和队列记录。保持 `submitEnabled=false`，等我明确批准真实提交范围后再启用。
->
-> 完成后给我工作区入口、配置和队列的位置、实际创建的任务 ID 与下一次运行时间、验收结果，以及仍需要我完成的授权。缺失的工具或权限请列出具体卡点和可用替代路径。
+Muse 会直接从 GitHub 读取模板。首次部署时，由你提供求职偏好，并在原生界面完成所需登录和授权。流程包含岗位发现、官网核验、私有申请队列、草稿和回执监督。
+
+[Muse Skill 入口](SKILL.md) · [HTML 手册](index.html) · [详细部署指令](DEPLOYMENT-PROMPT.md) · [配置示例](config.example.json)
+
+## 在终端初始化
+
+```sh
+git clone https://github.com/hukairui228/muse-job-workflow.git
+cd muse-job-workflow
+python3 -B scripts/bootstrap.py
+python3 -B -m unittest discover -s tests
+```
+
+初始化脚本在私有数据目录准备配置和运行目录。后续连接、调度和首轮验收由 Muse 按 [SKILL.md](SKILL.md) 完成。

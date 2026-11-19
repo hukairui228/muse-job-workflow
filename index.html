@@ -14,7 +14,7 @@
 <p class="flow">岗位来源 → Agent Reach／站内列表 → 官网核验 → 私有申请台账 → Muse → 雇主回执 → 监督回填</p>
 <nav aria-label="目录"><a href="#start">部署入口</a><a href="#scan">岗位扫描</a><a href="#queue">队列与投递</a><a href="#chrome">Chrome 授权</a><a href="#vault">外部密码库</a><a href="#accept">上线验收</a></nav>
 <section id="start"><h2>部署入口</h2>
-<p>解压整个包。把 <a href="DEPLOYMENT-PROMPT.md">部署 Prompt</a> 连同本页交给执行端。复制 <a href="config.example.json">配置模板</a>，填写自己的目标地区、时区、职能、可接受远程区域和雇主名单。简历、事实资料和历史申请由接收方在自己的私有工作区补齐。</p>
+<p>把仓库链接发给 Muse，让它按 <a href="SKILL.md">Skill 部署入口</a> 初始化工作区并验收。其他执行端可使用 <a href="DEPLOYMENT-PROMPT.md">详细部署指令</a> 和 <a href="config.example.json">配置模板</a>。简历、事实资料和历史申请放在接收方的私有工作区。</p>
 <ol><li>部署在拥有所需连接器和浏览器权限的常驻环境。分别建立扫描任务、单一投递执行端和只读监督任务；检查已有任务 ID 后再注册，避免双写。模板的 09:00／17:00 与两小时监督可改，使用 IANA 时区。</li>
 <li>目录按 <code>runs/&lt;run-id&gt;/</code> 保存每轮快照、覆盖清单、官网证据、交接收据和断点。申请台账及材料使用独立访问权限。调度器加互斥锁，上一轮未完成则按原游标续跑。启动前先跑手动一轮；生产提交开关默认关闭。</li>
 <li>扫描任务只负责发现、证据和派单。Muse 或替代 Harness 负责表单。监督任务读取回执和卡点，反馈给同一执行端。工作台、浏览器会话和凭据库的宿主都可单独替换。</li></ol>
