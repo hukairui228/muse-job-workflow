@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Muse 求职工作流 · 部署手册</title>
+<style>
+:root{color-scheme:dark;--bg:#0d0f13;--panel:#151920;--line:#2a313c;--text:#e8ecf2;--muted:#aab5c4;--accent:#83dec5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC",system-ui,sans-serif}main{max-width:900px;margin:auto;padding:40px 22px 80px}h1,h2,h3{line-height:1.35}h1{font-size:clamp(2rem,6vw,3.6rem);margin:0}h2{margin-top:0}h3{margin-bottom:.4rem}p{margin:.55rem 0 1rem}a{color:var(--accent);text-underline-offset:4px}nav{display:flex;flex-wrap:wrap;gap:8px 18px;margin:24px 0}section{scroll-margin:18px;margin:15px 0;padding:clamp(17px,4vw,30px);border:1px solid var(--line);border-radius:16px;background:var(--panel)}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:var(--bg);border-radius:8px}code{color:var(--accent)}li{margin:.45rem 0}.flow{padding:13px 16px;border-left:3px solid var(--accent);background:var(--panel)}.muted{color:var(--muted)}.table{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:525px}th,td{padding:9px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}footer{margin-top:28px}
+</style>
+</head>
+<body><main>
+<header><h1>Muse 求职工作流</h1><p class="muted">可交给 Muse 或其他 Harness 的独立部署手册</p></header>
+<p class="flow">岗位来源 → Agent Reach／站内列表 → 官网核验 → 私有申请台账 → Muse → 雇主回执 → 监督回填</p>
+<nav aria-label="目录"><a href="#start">部署入口</a><a href="#scan">岗位扫描</a><a href="#queue">队列与投递</a><a href="#chrome">Chrome 授权</a><a href="#vault">外部密码库</a><a href="#accept">上线验收</a></nav>
+<section id="start"><h2>部署入口</h2>
+<p>解压整个包。把 <a href="DEPLOYMENT-PROMPT.md">部署 Prompt</a> 连同本页交给执行端。复制 <a href="config.example.json">配置模板</a>，填写自己的目标地区、时区、职能、可接受远程区域和雇主名单。简历、事实资料和历史申请由接收方在自己的私有工作区补齐。</p>
+<ol><li>部署在拥有所需连接器和浏览器权限的常驻环境。分别建立扫描任务、单一投递执行端和只读监督任务；检查已有任务 ID 后再注册，避免双写。模板的 09:00／17:00 与两小时监督可改，使用 IANA 时区。</li>
+<li>目录按 <code>runs/&lt;run-id&gt;/</code> 保存每轮快照、覆盖清单、官网证据、交接收据和断点。申请台账及材料使用独立访问权限。调度器加互斥锁，上一轮未完成则按原游标续跑。启动前先跑手动一轮；生产提交开关默认关闭。</li>
+<li>扫描任务只负责发现、证据和派单。Muse 或替代 Harness 负责表单。监督任务读取回执和卡点，反馈给同一执行端。工作台、浏览器会话和凭据库的宿主都可单独替换。</li></ol>
+</section>
+<section id="scan"><h2>岗位扫描</h2>
+<p>按官方安装说明安装 Agent Reach。先从公开 Web 搜索和实际站内列表开始；需要登录的渠道先读 <code>doctor</code> 的 <code>active_backend</code>，由接收方在自己的专用浏览器登录。若出现限流、验证或权限拦截，保留断点和恢复条件。</p>
+<pre>agent-reach channels
+agent-reach doctor --json
+agent-reach web search "entry level analyst CITY" --limit 5
+agent-reach linkedin jobs "junior analyst" --location "CITY" --limit 5
+agent-reach read "$OFFICIAL_JOB_URL"</pre>
+<p>LinkedIn 是可选渠道。若需要，按渠道说明执行 <code>agent-reach add linkedin</code>。安装说明和渠道命令以当前版本为准。<br><a href="https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md">Agent Reach 官方安装说明</a></p>
+<div class="table"><table><thead><tr><th>来源</th><th>扫描方法</th></tr></thead><tbody>
+<tr><td><a href="https://simplify.jobs/">Simplify</a></td><td>主列表。地区 × 远程资格 × Entry／New Grad／Junior × 职能 × 雇佣类型分开取数。</td></tr>
+<tr><td><a href="https://ca.prosple.com/">Prosple</a>、<a href="https://interninsider.me/">Intern Insider</a>、<a href="https://econlaunch.ca/">EconLaunch</a></td><td>Prosple 按地区或分类分页。Intern Insider 作为实习补充。EconLaunch 的 Entry 和 Internship 分列。</td></tr>
+<tr><td><a href="https://www.jobbank.gc.ca/">Job Bank</a>、<a href="https://www.eluta.ca/">Eluta</a>、TalentEgg、LinkedIn</td><td>用于地区覆盖与增量发现。职业协会、校园招聘板和市政门户按接收方实际地区、权限和职能选配。</td></tr>
+<tr><td>雇主 Career Site／ATS</td><td>直接查官方列表和申请入口。Workday、Greenhouse、Lever 等按真实雇主站点核验。保存完整 JD、官方 Req、地点、截止时区及开放证据。</td></tr>
+</tbody></table></div>
+<p>每个筛选单独建 <code>source ID</code>。记录实际 URL、排序、声明总数、稳定来源 ID、唯一实读数、页数、游标和时间。全量跑到真实末页；增量按最近发布排序，回看到上轮已存的边界 ID，保存重叠段。搜索摘要只作发现。官网 403、无结果或登录页归待核。按已投、本人跳过、范围外、官网关闭、待核、正常可交接、冲刺可交接逐条分流并留证据。</p>
+<pre>python3 scripts/scan_coverage.py ingest --ledger ledger.json --source SOURCE --snapshot snapshot.json
+python3 scripts/scan_coverage.py classify --help
+python3 scripts/scan_coverage.py report --ledger ledger.json --manifest manifest.json
+python3 scripts/scan_coverage.py gate --ledger ledger.json --manifest manifest.json --stage all</pre>
+<p><code>manifest.json</code> 包含非空 <code>requiredSources</code> 数组。<code>snapshot.json</code> 保存 <code>url, query, total, rows, pages, cursor, capturedAt, complete, endEvidence</code>；每行至少有 <code>sourceId</code> 和 <code>title</code>，尽量补官方 URL。逐层验收列表覆盖、逐条分流、官网证据和接收回执。任何缺口列入下一步。</p>
+</section>
+<section id="queue"><h2>队列与投递</h2>
+<p>为接收方部署一个私有工作台，可用现有数据库加管理页。扫描端按批次增量写入，执行端认领并推进，监督端只读。以「雇主或 ATS 租户＋官方 Req」为首选唯一键，缺 Req 时使用规范化官方岗位 URL。状态变更带 revision，保留人工跳过与历史提交，写入后回读。</p>
+<pre>{
+  "batchId": "demo-001",
+  "jobs": [{
+    "employer": "Example Employer", "reqId": "REQ-DEMO-001",
+    "officialUrl": "https://example.com/careers/req-demo-001",
+    "jdRef": "evidence/demo-jd.txt", "officialEvidenceRef": "evidence/demo-open.json",
+    "deadline": null, "status": "review_ready", "applicationTier": "standard",
+    "qualificationGap": null, "revision": 1
+  }]
+}</pre>
+<ol>
+<li>在现有 Muse 主会话或受支持队列交接批次和证据引用。通过连接器或既有浏览器桥接时，核对接收方的会话绑定、主机权限、已发送正文和实际接收。连接失败时保存草稿及送达状态，恢复后先查是否已接收再重发。</li>
+<li>Muse 按 Req 独占认领，检查雇主申请限制、既有草稿和提交记录。准备真实的简历和可选求职信，复用批准过的材料与候选人提供的事实。Simplify 可作为表单辅助。逐项核对答案、附件和目标 Req 后按接收方授权提交。</li>
+<li>保存确认页、申请编号或可核实的雇主状态。记录 <code>submitted</code>、<code>submission_unconfirmed</code>、<code>awaiting_candidate</code> 或 <code>technical_block</code> 等实际状态。提交未确认先查 Candidate Home、确认邮件或既有草稿，确认前暂停重试提交。</li>
+<li>卡点记录当前阶段、最近动作及时间、证据、负责人和恢复条件。真正需要本人时，提供已核实的入口、正确会话／窗口、剩余动作和恢复方式。其余 Req 继续。监督分开统计列表覆盖、官网核验、执行端接收和雇主确认。</li>
+</ol>
+</section>
+<section id="chrome"><h2>Chrome 授权</h2>
+<p>历史流程中有两份本地扩展。<strong>Muse Auto-Approve</strong> 处理 Muse 的权限卡，可选择单次或持久批准。<strong>Muse Auto-Grant</strong> 另覆盖部分连接器 OAuth 同意页和上传卡。这里的上传卡属于 Muse Browser 工具授权。Chrome 本机配置和 Muse 远端执行浏览器的授权分别验收。</p>
+<ol><li>在接收方单独的 Chrome profile 连接 Muse。通过 <code>chrome://extensions</code> 检查现有浏览器桥接扩展和站点权限；在绑定后列出会话，再对 Muse 主会话做一次只读核验。</li>
+<li>部署时使用 Muse 原生权限。首次申请在界面核对站点、动作、文件或账号后由本人批准。平台支持持久授权时，由本人按明确的单站点、单动作范围设置，并复测是否生效。OAuth、密码填写、MFA、系统权限各自使用对应的授权界面。</li>
+<li>若按钮要求选账号或密码而无法批准，先分辨是工具权限、保存凭据选择，还是雇主登录验证。核对发卡来源、目标、已核账号和授权通道。记录真实卡点并保留原草稿。</li></ol>
+<p class="muted">分享包中的 Chrome 步骤使用原生授权；历史扩展源码和安装包留在原工作区。</p>
+</section>
+<section id="vault"><h2>外部密码库</h2>
+<p>原流程采用独立凭据站点，工作台只保留申请状态和必要的私有证据引用。接收方可选托管密码管理器，或在自己的域名独立部署 Bitwarden。此处用自托管路径说明如何新建外部站点。<br><a href="https://bitwarden.com/help/install-on-premise-linux/">Bitwarden 官方 Linux 部署步骤</a> · <a href="https://bitwarden.com/help/self-host-bitwarden/">自托管选项</a></p>
+<ol><li>在接收方主机上配置私有域名、DNS、HTTPS、部署和备份。按官方指南设置接收方自己的安装配置。启用管理员与账户 MFA，限制注册及管理访问。使用官方客户端和受支持的登录入口；生成密钥和恢复材料后单独保管。</li>
+<li>新建隔离的求职凭据库或集合。接收方在密码管理器中新增账号，设置精确的 HTTPS origin 匹配。同一雇主有多个账号时，用已核实的用户名或邮箱明确选定。同一 Workday 父域下的不同雇主保持独立条目。库中无记录时查原申请和注册历史，再决定官方登录、恢复或注册路径。</li>
+<li>在<strong>实际执行浏览器</strong>连接其原生 Secure Store 或受支持的密码管理器。先检查该通道可见的唯一凭据、站点授权和实际自动填充。远端浏览器接不进外部库时，保留外部库的人工使用能力，按产品支持路径重新授权原生存储；该 Req 暂停自动登录，其他申请继续。</li>
+<li>保存或更新后，核对记录 ID、准确域名和更新时间。用接收方授权的账号在独立新会话做两次登录，核到正确账号的登录后页。分别记录会话复用和新会话登录。做一次备份恢复演练，日志仅记录必要的元数据和结果。</li></ol>
+<p>独立部署自有凭据服务时，验收覆盖逐用户访问隔离、传输与静态加密、密钥独立保管、会话过期、日志脱敏、无缓存和备份恢复。申请台账、Prompt、日志和交接包中禁止存放密码、验证码、Cookie、会话令牌或恢复密钥。</p>
+</section>
+<section id="accept"><h2>上线验收</h2>
+<pre>python3 -B -m unittest discover -s tests -p 'test_scan_coverage.py' -v</pre>
+<div class="table"><table><thead><tr><th>演练</th><th>通过条件</th></tr></thead><tbody>
+<tr><td>覆盖与官网</td><td>一条真实来源到末页或已存边界，必需来源缺失时 gate 失败。一个候选拿到完整 JD 和官网开放证据。</td></tr>
+<tr><td>交接与防重</td><td>合成批次重复两次只生成一个 Req；同一 Req 只被认领一次。接收回执可回读。</td></tr>
+<tr><td>授权与凭据</td><td>两个合成雇主分域；缺失、多匹配和拒绝均产生明确暂停。真实账号冷登须另经接收方授权，远端未验保持待验。</td></tr>
+<tr><td>投递与恢复</td><td>模拟超时后先查官方结果，提交未确认状态不会计为成功。草稿与本人卡点可以接续。真实投递须在授权范围内另行启用。</td></tr>
+</tbody></table></div>
+<p>定时任务启用后记录任务 ID、下一运行时间、暂停方法和断点位置。要转发部署包时，只转发这套模板文件。</p>
+</section>
+<footer class="muted">部署材料 · HTML 手册、部署 Prompt、配置模板和离线覆盖审计工具</footer>
+</main></body></html>

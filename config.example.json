@@ -1,0 +1,14 @@
+{
+  "timeZone": null,
+  "scanLocalTimes": ["09:00", "17:00"],
+  "supervisionIntervalMinutes": 120,
+  "locations": [],
+  "remoteEligibleRegions": [],
+  "roleFamilies": [],
+  "levels": ["entry", "new_grad", "junior"],
+  "employmentTypes": ["full_time", "contract", "internship", "part_time"],
+  "requiredSources": [],
+  "employerCareerPages": [],
+  "maxConcurrentApplications": 1,
+  "submitEnabled": false
+}
